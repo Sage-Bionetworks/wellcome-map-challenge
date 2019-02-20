@@ -56,7 +56,7 @@ requirements:
                 if markdown is None:
                     invalid_reasons.append("Submission is not a Synapse project.")
                     return invalid_reasons
-                found_headers = re.findall("#+\s?([\w\s]+)[\\n]+", markdown)
+                found_headers = re.findall("#+\s?([\w\s\-]+)[\\n]+", markdown)
                 found_headers = list(map(str.strip, found_headers))
                 missing_headers = set(required_headers).difference(found_headers)
                 if len(missing_headers):
@@ -110,12 +110,14 @@ requirements:
                     wiki_markdown = get_wiki_markdown(syn, sub)
                     invalid_reasons = validate_submission(wiki_markdown)
                 except synapseclient.exceptions.SynapseHTTPError:
-                    invalid_reasons = ["A root wiki does not exist for this project"]
+                    invalid_reasons = ["A wiki does not exist for this project. ",
+                                       "Please use the template syn17022214 "
+                                       "as the root wiki page."]
                 if len(invalid_reasons):
                     result = {'validation_errors':"\n".join(invalid_reasons),
                               'status':"INVALID"}
                 else:
-                    result = {'validation_errors':None,
+                    result = {'validation_errors':"null",
                               'status':"VALIDATED"}
                 with open(args.results, 'w') as o:
                   o.write(json.dumps(result))

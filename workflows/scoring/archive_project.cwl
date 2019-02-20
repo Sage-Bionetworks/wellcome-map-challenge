@@ -65,10 +65,11 @@ requirements:
                 args = parser.parse_args()
                 return(args)
 
-            def create_new_project(syn, submission_id):
+            def create_new_project(syn, sub):
                 project = synapseclient.Project(
-                        "Wellcome MAP Archive - Submission {}".format(submission_id),
-                        annotations = {"submission_id": submission_id,
+                        "Wellcome MAP Archive - Submission {}".format(sub["id"]),
+                        annotations = {"source": sub["entityId"],
+                                       "submissionId": sub["id"],
                                        "createdOn": time.time()})
                 project = syn.store(project)
                 return project
@@ -90,26 +91,26 @@ requirements:
                     syn = synapseclient.Synapse(configPath=args.synapse_config)
                     syn.login(silent = True)
                     sub = syn.getSubmission(args.submission_id)
-                    new_project = create_new_project(syn, args.submission_id)
+                    new_project = create_new_project(syn, sub)
                     give_read_permissions = sub['teamId'] if 'teamId' in sub else sub['userId']
                     archive_project(syn,
                                     source = sub['entityId'],
                                     dest = new_project['id'],
                                     grant_permissions_to = [int(give_read_permissions)])
-                    with open(args.results, 'w') as o:
-                        o.write(json.dumps({"id": new_project['id']}))
+                    with open(args.results, "w") as o:
+                        o.write(json.dumps({"synapseId": new_project["id"]}))
                 else:
-                    with open(args.results, 'w') as o:
-                        o.write(json.dumps({"id": "null"}))
+                    with open(args.results, "w") as o:
+                        o.write(json.dumps({"synapseId": "null"}))
 
 
             if __name__ == "__main__":
                 main()
      
 outputs:
-  - id: archive
+  - id: synapseId
     type: string
     outputBinding:
       glob: results.json
       loadContents: true
-      outputEval: $(JSON.parse(self[0].contents)['archive'])
+      outputEval: $(JSON.parse(self[0].contents)["synapseId"])

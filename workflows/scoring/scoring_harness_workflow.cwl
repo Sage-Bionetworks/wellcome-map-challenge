@@ -52,7 +52,7 @@ steps:
       - id: status
         source: "#validation/status"
     out:
-      - id: archive
+      - id: synapseId
 
   annotate_validation_with_output:
     run: annotate_submission.cwl
@@ -60,7 +60,7 @@ steps:
       - id: submissionId
         source: "#submissionId"
       - id: archive 
-        source: "#archive_project/archive"
+        source: "#archive_project/synapseId"
       - id: status
         source: "#validation/status"
       - id: invalid_reasons
@@ -77,7 +77,7 @@ steps:
       - id: synapseConfig
         source: "#synapseConfig"
       - id: archive 
-        source: "#archive_project/archive"
+        source: "#archive_project/synapseId"
       - id: status
         source: "#validation/status"
       - id: invalid_reasons
