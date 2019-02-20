@@ -15,6 +15,8 @@ inputs:
     type: int
   - id: synapseConfig
     type: File
+  - id: archive
+    type: string
   - id: status
     type: string
   - id: invalid_reasons
@@ -26,6 +28,8 @@ arguments:
     prefix: -s
   - valueFrom: $(inputs.synapseConfig.path)
     prefix: -c
+  - valueFrom: $(inputs.archive)
+    prefix: --archive
   - valueFrom: $(inputs.status)
     prefix: --status
   - valueFrom: $(inputs.invalid_reasons)
@@ -50,6 +54,8 @@ requirements:
                                   help="Submission ID")
               parser.add_argument("-c", "--synapse_config", required=True,
                                   help="credentials file")
+              parser.add_argument("--archive", required=True,
+                                  help="Synapse ID of project archive")
               parser.add_argument("--status", required=True,
                                   help="Prediction File Status")
               parser.add_argument("-i","--invalid", required=True,
@@ -57,24 +63,26 @@ requirements:
               args = parser.parse_args()
               return(args)
 
-          def send_email(syn, submission_id, status, invalid_reasons):
+          def send_email(syn, submission_id, archive, status, invalid_reasons):
               sub = syn.getSubmission(submission_id)
               user_id = sub.userId
               evaluation = syn.getEvaluation(sub.evaluationId)
-              if status == "INVALID":
+              if status == "VALIDATED":
+                  subject = "Submission to {} accepted!".format(evaluation.name)
+                  message = ["Hello {},\n\n".format(
+                                  syn.getUserProfile(user_id)['userName']),
+                             "Your submission ({}) is valid!\n\n".format(sub.name),
+                             "A snapshot of the project has been archived "
+                             "at {}.\n\n".format(archive),
+                             "\nSincerely,\nWellcome MAP Challenge Administrator"]
+              else:
                   subject = "Submission to {} invalid".format(evaluation.name)
                   message = ["Hello {},\n\n".format(
                                   syn.getUserProfile(user_id)['userName']),
                              "Your submission ({}) is invalid, below are the "
                              "invalid reasons:\n\n".format(sub.name),
                              invalid_reasons,
-                             "\n\nSincerely,\nNeurolincs Challenge Administrator"]
-              else:
-                  subject = "Submission to {} accepted!".format(evaluation.name)
-                  message = ["Hello {},\n\n".format(
-                                  syn.getUserProfile(user_id)['userName']),
-                             "Your submission ({}) is valid!\n\n".format(sub.name),
-                             "\nSincerely,\nNeurolincs Challenge Administrator"]
+                             "\n\nSincerely,\nWellcome MAP Challenge Administrator"]
               syn.sendMessage(
                 userIds=[user_id],
                 messageSubject=subject,
@@ -85,7 +93,7 @@ requirements:
               args = read_args()
               syn = synapseclient.Synapse(configPath=args.synapse_config)
               syn.login()
-              send_email(syn, args.submissionid, args.status, args.invalid)
+              send_email(syn, args.submissionid, args.archive, args.status, args.invalid)
 
           if __name__ == "__main__":
               main()

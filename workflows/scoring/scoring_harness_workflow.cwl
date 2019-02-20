@@ -35,24 +35,12 @@ steps:
     in:
       - id: submissionId 
         source: "#submissionId"
+      - id: synapseConfig
+        source: "#synapseConfig" 
     out:
       - id: results
       - id: status
       - id: invalid_reasons
-  
-  validation_email:
-    run: validate_email.cwl
-    in:
-      - id: submissionId
-        source: "#submissionId"
-      - id: synapseConfig
-        source: "#synapseConfig"
-      - id: status
-        source: "#validation/status"
-      - id: invalid_reasons
-        source: "#validation/invalid_reasons"
-
-    out: []
 
   archive_project:
     run: archive_project.cwl
@@ -61,62 +49,37 @@ steps:
         source: "#submissionId"
       - id: synapseConfig
         source: "#synapseConfig"
+      - id: status
+        source: "#validation/status"
     out:
-      - id: filepath
-      - id: entity
+      - id: archive
 
   annotate_validation_with_output:
     run: annotate_submission.cwl
     in:
       - id: submissionId
         source: "#submissionId"
-      - id: annotation_values
-        source: "#validation/results"
+      - id: archive 
+        source: "#archive_project/archive"
+      - id: status
+        source: "#validation/status"
+      - id: invalid_reasons
+        source: "#validation/invalid_reasons"
       - id: synapseConfig
         source: "#synapseConfig"
     out: []
-
-  download_goldstandard:
-    run: download_from_synapse.cwl
-    in:
-      - id: synapseid
-        valueFrom: "syn18345738"
-      - id: synapse_config
-        source: "#synapseConfig"
-    out:
-      - id: filepath
-
-  scoring:
-    run: score.cwl
-    in:
-      - id: inputfile
-        source: "#download_submission/filepath"
-      -id: gold_standard
-        source: "#download_goldstandard/filepath"
-      - id: status 
-        source: "#validation/status"
-    out:
-      - id: results
-      
-  #score_email:
-  #  run: score_email.cwl
-  #  in:
-  #    - id: submissionid
-  #      source: "#submissionId"
-  #    - id: synapse_config
-  #      source: "#synapseConfig"
-  #    - id: results
-  #      source: "#scoring/results"
-  #  out: []
-
-  annotate_submission_with_output:
-    run: annotate_submission.cwl
+  
+  validation_email:
+    run: validate_email.cwl
     in:
       - id: submissionId
         source: "#submissionId"
-      - id: annotation_values
-        source: "#scoring/results"
       - id: synapseConfig
         source: "#synapseConfig"
+      - id: archive 
+        source: "#archive_project/archive"
+      - id: status
+        source: "#validation/status"
+      - id: invalid_reasons
+        source: "#validation/invalid_reasons"
     out: []
- 

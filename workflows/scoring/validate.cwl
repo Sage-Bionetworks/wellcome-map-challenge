@@ -12,8 +12,8 @@ hints:
 
 inputs:
   - id: submissionId 
-    type: string
-  - id: synapseCache
+    type: int
+  - id: synapseConfig
     type: File
 
 arguments:
@@ -32,7 +32,7 @@ requirements:
       - entryname: validate.py
         entry: |
             #!/usr/bin/env python
-            import synapseclient as sc
+            import synapseclient
             import argparse
             import json
             import re
@@ -60,7 +60,7 @@ requirements:
                 found_headers = list(map(str.strip, found_headers))
                 missing_headers = set(required_headers).difference(found_headers)
                 if len(missing_headers):
-                    invalid_reasons.append("The following headers are missing: {}\n"
+                    invalid_reasons.append("The following headers are missing: {}<br />"
                                            "Please make sure each header is preceded "
                                            "by one or more '#' symbols and is "
                                            "terminated by a newline ('\\n') "
@@ -86,8 +86,8 @@ requirements:
                 return invalid_reasons
 
             def is_project(sub):
-                if sub['entityBundleJSON']['entityType'] == \
-                    "org.sagebionetworks.repo.model.Project":
+                entity_bundle = json.loads(sub['entityBundleJSON'])
+                if entity_bundle['entityType'] == "org.sagebionetworks.repo.model.Project":
                     return True
                 else:
                     return False
@@ -105,9 +105,12 @@ requirements:
                 syn = synapseclient.Synapse(configPath=args.synapse_config)
                 syn.login()
                 sub = syn.getSubmission(args.submission_id,
-                                        downloadLocation=args.submission_cache)
-                wiki_markdown = get_wiki_markdown(syn, sub)
-                invalid_reasons = validate_submission(wiki_markdown)
+                                        downloadLocation=".")
+                try:
+                    wiki_markdown = get_wiki_markdown(syn, sub)
+                    invalid_reasons = validate_submission(wiki_markdown)
+                except synapseclient.exceptions.SynapseHTTPError:
+                    invalid_reasons = ["A root wiki does not exist for this project"]
                 if len(invalid_reasons):
                     result = {'validation_errors':"\n".join(invalid_reasons),
                               'status':"INVALID"}
@@ -130,10 +133,10 @@ outputs:
     outputBinding:
       glob: results.json
       loadContents: true
-      outputEval: $(JSON.parse(self[0].contents)['prediction_file_status'])
+      outputEval: $(JSON.parse(self[0].contents)['status'])
   - id: invalid_reasons
     type: string
     outputBinding:
       glob: results.json
       loadContents: true
-      outputEval: $(JSON.parse(self[0].contents)['prediction_file_errors'])
+      outputEval: $(JSON.parse(self[0].contents)['validation_errors'])

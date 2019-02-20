@@ -14,8 +14,12 @@ hints:
 inputs:
   - id: submissionId
     type: int
-  - id: annotation_values
-    type: File
+  - id: archive 
+    type: string
+  - id: status
+    type: string
+  - id: invalid_reasons
+    type: string
   - id: to_public
     type: boolean 
     default: true
@@ -29,8 +33,12 @@ arguments:
   - valueFrom: annotationSubmission.py
   - valueFrom: $(inputs.submissionId)
     prefix: -s
-  - valueFrom: $(inputs.annotation_values)
-    prefix: -v
+  - valueFrom: $(inputs.archive)
+    prefix: --archive
+  - valueFrom: $(inputs.status)
+    prefix: --status
+  - valueFrom: $(inputs.invalid_reasons)
+    prefix: --invalid-reasons
   - valueFrom: $(inputs.to_public)
     prefix: -p
   - valueFrom: $(inputs.force_change_annotation_acl)
@@ -53,21 +61,25 @@ requirements:
           def read_args():
               parser = argparse.ArgumentParser()
               parser.add_argument("-s", "--submissionid", required=True, help="Submission ID")
-              parser.add_argument("-v", "--annotation_values", required=True,
-                                  help="JSON file of annotations with key:value pair")
+              parser.add_argument("--archive", required=True,
+                                  help="Synapse ID of archived project.")
+              parser.add_argument("--status", required=True,
+                                  help="Validation status")
+              parser.add_argument("--invalid-reasons",
+                                  help="Invalid Reasons, if applicable")
               parser.add_argument("-p", "--to_public",
                                   help="Annotations are by default private "
                                        "except to queue administrator(s), "
                                        "so change them to be public",
                                        action='store_const', const = True,
-                                       default='false')
+                                       default=True)
               parser.add_argument("-f", "--force_change_annotation_acl",
                                   help="Ability to update annotations if the key "
                                        "has different ACLs, warning will occur if "
                                        "this parameter isn't specified and the same "
                                        "key has different ACLs",
                                        action='store_const', const = True,
-                                       default='false')
+                                       default=True)
               parser.add_argument("-c", "--synapse_config", required=True,
                                   help="credentials file")
               args = parser.parse_args()
@@ -76,13 +88,6 @@ requirements:
           def update_single_submission_status(status, add_annotations,
                                               to_public=False,
                                               force_change_annotation_acl=False):
-              """
-              This will update a single submission's status
-              :param:    Submission status: syn.getSubmissionStatus()
-              :param:    Annotations that you want to add in dict or submission
-                         status annotations format. If dict, all submissions will
-                         be added as private submissions
-              """
               existing_annotations = status.get("annotations", dict())
               private_annotations = {annotation['key']:annotation['value']
                                      for annotation_type in existing_annotations
@@ -162,29 +167,20 @@ requirements:
           def annotate_submission(syn, submissionid, annotation_values,
                                   to_public, force_change_annotation_acl):
               status = syn.getSubmissionStatus(submissionid)
-              with open(annotation_values) as json_data:
-                  annotation_json = json.load(json_data)
               status = update_single_submission_status(
-                    status, annotation_json, to_public=to_public,
+                    status, annotation_values, to_public=to_public,
                     force_change_annotation_acl=force_change_annotation_acl)
               status = syn.store(status)
-
-          def update_status(syn, submission_id, annotation_values):
-              status = syn.getSubmissionStatus(submission_id)
-              with open(annotation_values, 'r') as f:
-                  annotations = json.load(f)
-              for k, v in annotations:
-                  if k == "prediction_file_status" and v != status["status"]:
-                      status['status'] = v
-                      syn.store(status)
 
           def main():
               args = read_args()
               syn = sc.Synapse(configPath=args.synapse_config)
               syn.login()
-              update_status(syn, args.submissionid, args.annotation_values)
+              annotation_values = {'archive': args.archive,
+                                   'status': args.status,
+                                   'invalid_reasons': args.invalid_reasons}
               _with_retry(lambda: annotate_submission(
-                                syn, args.submissionid, args.annotation_values,
+                                syn, args.submissionid, annotation_values,
                                 to_public=args.to_public,
                                 force_change_annotation_acl=args.force_change_annotation_acl),
                           wait=3,
