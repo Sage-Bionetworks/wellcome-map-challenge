@@ -68,21 +68,38 @@ requirements:
                                            "use the provided template "
                                            "(syn17022214).".format(", ".join(missing_headers)))
                     return invalid_reasons
-                for i in range(len(required_headers)):
-                    if required_headers[i] != found_headers[i]:
-                        if i == 0:
-                            invalid_reasons.append(
-                                    "Headers are in the incorrect order. "
-                                    "The first header should be '{}' but found "
-                                    "'{}'".format(required_headers[i], found_headers[i]))
-                        elif i > 0:
-                            invalid_reasons.append(
-                                    "Headers are in the incorrect order. "
-                                    "Expected header '{}' after header '{}' "
-                                    "but found header '{}'".format(
-                                        required_headers[i], required_headers[i-1],
-                                        found_headers[i]))
-                        return invalid_reasons
+                #for i in range(len(required_headers)):
+                #    if required_headers[i] != found_headers[i]:
+                #        if i == 0:
+                #            invalid_reasons.append(
+                #                    "Headers are in the incorrect order. "
+                #                    "The first header should be '{}' but found "
+                #                    "'{}'".format(required_headers[i], found_headers[i]))
+                #        elif i > 0:
+                #            invalid_reasons.append(
+                #                    "Headers are in the incorrect order. "
+                #                    "Expected header '{}' after header '{}' "
+                #                    "but found header '{}'".format(
+                #                        required_headers[i], required_headers[i-1],
+                #                        found_headers[i]))
+                #        return invalid_reasons
+                return invalid_reasons
+
+            def check_permissions(syn, sub):
+                invalid_reasons = []
+                project_id = sub['entityId']
+                try:
+                    perms = syn.getPermissions(project_id, 3380061) # wellcomeprize
+                    if "READ" not in perms and "DOWNLOAD" not in perms:
+                        invalid_reasons.append(
+                                "The 'wellcomeprize' user cannot read the project. "
+                                "Please change the sharing settings to 'download' "
+                                "for user 'wellcomeprize' on your project.")
+                except synapseclient.exceptions.SynapseHTTPError as e:
+                    invalid_reasons.append(
+                            "The 'wellcomeprize' user cannot read the project. "
+                            "Please change the sharing settings to 'download' "
+                            "for user 'wellcomeprize' on your project.")
                 return invalid_reasons
 
             def is_project(sub):
@@ -104,15 +121,18 @@ requirements:
                 args = read_args()
                 syn = synapseclient.Synapse(configPath=args.synapse_config)
                 syn.login()
-                sub = syn.getSubmission(args.submission_id,
-                                        downloadLocation=".")
-                try:
-                    wiki_markdown = get_wiki_markdown(syn, sub)
-                    invalid_reasons = validate_submission(wiki_markdown)
-                except synapseclient.exceptions.SynapseHTTPError:
-                    invalid_reasons = ["A wiki does not exist for this project. ",
-                                       "Please use the template syn17022214 "
-                                       "as the root wiki page."]
+                sub = syn.getSubmission(args.submission_id)
+                invalid_reasons = check_permissions(syn, sub)
+                if len(invalid_reasons):
+                    pass
+                else:
+                    try:
+                        wiki_markdown = get_wiki_markdown(syn, sub)
+                        invalid_reasons = validate_submission(wiki_markdown)
+                    except synapseclient.exceptions.SynapseHTTPError:
+                        invalid_reasons = ["A wiki does not exist for this project. ",
+                                           "Please use the template syn17022214 "
+                                           "as the root wiki page."]
                 if len(invalid_reasons):
                     result = {'validation_errors':"\n".join(invalid_reasons),
                               'status':"INVALID"}

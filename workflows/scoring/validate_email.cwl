@@ -82,6 +82,8 @@ requirements:
                              "Your submission ({}) is invalid, below are the "
                              "invalid reasons:\n\n".format(sub.name),
                              invalid_reasons,
+                             "\n\n<b>Once you have made your changes, please ",
+                             "resubmit to the challenge.</b>",
                              "\n\nSincerely,\nWellcome MAP Challenge Administrator"]
               syn.sendMessage(
                 userIds=[user_id],
