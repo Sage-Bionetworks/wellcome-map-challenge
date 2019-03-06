@@ -90,7 +90,9 @@ requirements:
                 project_id = sub['entityId']
                 try:
                     perms = syn.getPermissions(project_id, 3380061) # wellcomeprize
-                    if "READ" not in perms and "DOWNLOAD" not in perms:
+                    perms_team = syn.getPermissions(project_id, 3377737) # Wellcome Data Re-Use Prize - Malaria Admin
+                    if ("READ" not in perms and "DOWNLOAD" not in perms) and
+                       ("READ" not in perms_team and "DOWNLOAD" not in perms_team):
                         invalid_reasons.append(
                                 "The 'wellcomeprize' user cannot read the project. "
                                 "Please change the sharing settings to 'download' "
