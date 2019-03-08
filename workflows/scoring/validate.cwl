@@ -68,6 +68,7 @@ requirements:
                                            "use the provided template "
                                            "(syn17022214).".format(", ".join(missing_headers)))
                     return invalid_reasons
+                # HEADERS must be in same order as template
                 #for i in range(len(required_headers)):
                 #    if required_headers[i] != found_headers[i]:
                 #        if i == 0:
